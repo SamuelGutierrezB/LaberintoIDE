@@ -1,7 +1,11 @@
+import gui.LaberintoJFrame;
+import javax.swing.SwingUtilities;
+
 public class Main {
     public static void main(String[] args) {
-        // Iniciar la interfaz gráfica
-        new gui.LaberintoGUI().setVisible(true);
-        
+        SwingUtilities.invokeLater(() -> {
+            LaberintoJFrame frame = new LaberintoJFrame();
+            frame.setVisible(true);
+        });
     }
 }

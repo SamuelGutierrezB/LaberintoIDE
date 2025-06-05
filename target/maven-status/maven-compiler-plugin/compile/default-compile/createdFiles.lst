@@ -1,13 +1,15 @@
 analizador\Tokens.class
-gui\LaberintoGUI$3.class
 analizador\CommandParser.class
 modelo\Celda.class
 modelo\Entidad$Monstruo.class
 gui\LaberintoGUI.class
 gui\LaberintoGUI$2.class
 modelo\Entidad.class
+gui\LaberintoJFrame$1.class
 modelo\Entidad$Puerta.class
 Main.class
 modelo\Laberinto.class
 gui\LaberintoGUI$1.class
 modelo\NodoDijkstra.class
+gui\LaberintoJFrame.class
+gui\LaberintoJFrame$2.class

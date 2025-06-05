@@ -1,8 +1,9 @@
-C:\Users\yahir\OneDrive\Documentos\NetBeansProjects\LaberintoIDE-main\src\main\java\Main.java
-C:\Users\yahir\OneDrive\Documentos\NetBeansProjects\LaberintoIDE-main\src\main\java\analizador\CommandParser.java
-C:\Users\yahir\OneDrive\Documentos\NetBeansProjects\LaberintoIDE-main\src\main\java\modelo\Laberinto.java
-C:\Users\yahir\OneDrive\Documentos\NetBeansProjects\LaberintoIDE-main\src\main\java\modelo\NodoDijkstra.java
-C:\Users\yahir\OneDrive\Documentos\NetBeansProjects\LaberintoIDE-main\src\main\java\gui\LaberintoGUI.java
-C:\Users\yahir\OneDrive\Documentos\NetBeansProjects\LaberintoIDE-main\src\main\java\modelo\Celda.java
-C:\Users\yahir\OneDrive\Documentos\NetBeansProjects\LaberintoIDE-main\src\main\java\modelo\Entidad.java
-C:\Users\yahir\OneDrive\Documentos\NetBeansProjects\LaberintoIDE-main\src\main\java\analizador\Tokens.java
+C:\Users\yahir\OneDrive\Documentos\NetBeansProjects\LaberintoIDE\src\main\java\modelo\Laberinto.java
+C:\Users\yahir\OneDrive\Documentos\NetBeansProjects\LaberintoIDE\src\main\java\gui\LaberintoJFrame.java
+C:\Users\yahir\OneDrive\Documentos\NetBeansProjects\LaberintoIDE\src\main\java\Main.java
+C:\Users\yahir\OneDrive\Documentos\NetBeansProjects\LaberintoIDE\src\main\java\gui\LaberintoGUI.java
+C:\Users\yahir\OneDrive\Documentos\NetBeansProjects\LaberintoIDE\src\main\java\modelo\Celda.java
+C:\Users\yahir\OneDrive\Documentos\NetBeansProjects\LaberintoIDE\src\main\java\analizador\CommandParser.java
+C:\Users\yahir\OneDrive\Documentos\NetBeansProjects\LaberintoIDE\src\main\java\analizador\Tokens.java
+C:\Users\yahir\OneDrive\Documentos\NetBeansProjects\LaberintoIDE\src\main\java\modelo\NodoDijkstra.java
+C:\Users\yahir\OneDrive\Documentos\NetBeansProjects\LaberintoIDE\src\main\java\modelo\Entidad.java
