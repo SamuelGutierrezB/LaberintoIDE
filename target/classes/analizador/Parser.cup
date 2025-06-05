@@ -1,82 +1,119 @@
-// Parser.cup
 package analizador;
 
-import modelo.*;
 import java_cup.runtime.*;
+import modelo.*;
+import java.util.*;
 
 parser code {:
-    // Código de inicialización del parser
-    private Laberinto laberintoActual;
+    private Laberinto laberinto;
     
-    public void setLaberinto(Laberinto lab) {
-        this.laberintoActual = lab;
-    }
-:}
-
-action code {:
-    // Métodos auxiliares para acciones
-    private void crearLaberinto(int ancho, int alto) {
-        laberintoActual = new Laberinto(ancho, alto);
-    }
-    
-    private void agregarPared(int x, int y, int longitud, String direccion) {
-        // Implementar lógica para añadir pared
-        boolean esHorizontal = direccion.equals("H");
-        for (int i = 0; i < longitud; i++) {
-            int xActual = esHorizontal ? x + i : x;
-            int yActual = esHorizontal ? y : y + i;
-            if (xActual < laberintoActual.getAncho() && yActual < laberintoActual.getAlto()) {
-                laberintoActual.getCelda(xActual, yActual).setPared(true);
-            }
+    // Métodos de utilidad para el parser
+    private void validarCoordenadas(int x, int y) {
+        if (laberinto == null) {
+            throw new IllegalArgumentException("Laberinto no inicializado. Use ROOM primero.");
+        }
+        if (x < 0 || x >= laberinto.getAncho() || y < 0 || y >= laberinto.getAlto()) {
+            throw new IllegalArgumentException("Coordenadas fuera de rango (0-" + (laberinto.getAncho()-1) + ")");
         }
     }
-:}
+    
+    // Métodos para ejecutar comandos directamente en el parser
+    private void crearLaberinto(int ancho, int alto) {
+        laberinto = new Laberinto(ancho, alto);
+    }
+
+    private void togglePared(int x, int y) {
+        validarCoordenadas(x, y);
+        laberinto.togglePared(x, y);
+    }
+
+    private void setCeldaInicio(int x, int y) {
+        validarCoordenadas(x, y);
+        laberinto.setCeldaInicio(x, y);
+    }
+
+    private void setCeldaFin(int x, int y) {
+        validarCoordenadas(x, y);
+        laberinto.setCeldaFin(x, y);
+    }
+
+    private void agregarPuerta(int x, int y) {
+        validarCoordenadas(x, y);
+        laberinto.getCelda(x, y).setEntidad(new Entidad.Puerta(x, y));
+    }
+
+    private void agregarMonstruo(int x, int y) {
+        validarCoordenadas(x, y);
+        laberinto.getCelda(x, y).setEntidad(new Entidad.Monstruo(x, y));
+    }
+
+    private void encontrarCamino() {
+        laberinto.limpiarCaminos();
+        List<Celda> camino = laberinto.encontrarCaminoDijkstra();
+        if (camino.isEmpty()) {
+            throw new IllegalArgumentException("No hay camino o falta START/END");
+        }
+        for (Celda celda : camino) {
+            celda.setEnCamino(true);
+        }
+    }
+
+    private void limpiarCaminos() {
+        laberinto.limpiarCaminos();
+    }
+    
+    // Método público para obtener el laberinto
+    public Laberinto getLaberinto() {
+        return laberinto;
+    }
+:};
 
 /* Terminales (tokens) */
-terminal String ROOM, WALL, START, END, DOOR, MONSTER, ITEM, H, V;
-terminal Integer NUMERO;
-terminal String COMA, PAREN_IZQ, PAREN_DER;
+terminal String ROOM, WALL, START, END, DOOR, MONSTER, GO, CLEAR_PATH;
+terminal Integer NUMBER;
 
 /* No terminales */
-non terminal Laberinto laberinto;
-non terminal Instrucciones lista_instrucciones;
-non terminal Instruccion instruccion;
+non terminal command;
+non terminal room_command;
+non terminal wall_command;
+non terminal start_command;
+non terminal end_command;
+non terminal door_command;
+non terminal monster_command;
 
-/* Precedencias */
-precedence left PAREN_IZQ, PAREN_DER;
+/* Gramática */
+start with command;
 
-/* Reglas gramaticales */
-start with lista_instrucciones;
+command ::= room_command 
+          | wall_command 
+          | start_command 
+          | end_command 
+          | door_command 
+          | monster_command 
+          | GO {: encontrarCamino(); :}
+          | CLEAR_PATH {: limpiarCaminos(); :}
+          ;
 
-lista_instrucciones ::= instruccion lista_instrucciones 
-                      | /* vacío */ ;
+room_command ::= ROOM NUMBER NUMBER {: 
+                    crearLaberinto((Integer)$2, (Integer)$3); 
+                :};
 
-instruccion ::= ROOM PAREN_IZQ NUMERO COMA NUMERO PAREN_DER {:
-                    crearLaberinto($3, $5);
-                    System.out.println("Nuevo laberinto " + $3 + "x" + $5);
-              :}
-              | WALL PAREN_IZQ NUMERO COMA NUMERO COMA NUMERO COMA DIRECCION PAREN_DER {:
-                    agregarPared($3, $5, $7, $9);
-                    System.out.println("Pared desde (" + $3 + "," + $5 + ") " + 
-                                      "longitud " + $7 + " dirección " + $9);
-              :}
-              | START PAREN_IZQ NUMERO COMA NUMERO PAREN_DER {:
-                    laberintoActual.setCeldaInicio($3, $5);
-                    System.out.println("Punto de inicio en (" + $3 + "," + $5 + ")");
-              :}
-              | END PAREN_IZQ NUMERO COMA NUMERO PAREN_DER {:
-                    laberintoActual.setCeldaFin($3, $5);
-                    System.out.println("Punto final en (" + $3 + "," + $5 + ")");
-              :}
-              | DOOR PAREN_IZQ NUMERO COMA NUMERO PAREN_DER {:
-                    laberintoActual.getCelda($3, $5).setEntidad(new Entidad.Puerta($3, $5));
-                    System.out.println("Puerta añadida en (" + $3 + "," + $5 + ")");
-              :}
-              | MONSTER PAREN_IZQ NUMERO COMA NUMERO PAREN_DER {:
-                    laberintoActual.getCelda($3, $5).setEntidad(new Entidad.Monstruo($3, $5));
-                    System.out.println("Monstruo añadido en (" + $3 + "," + $5 + ")");
-              :}
-              | ITEM PAREN_IZQ NUMERO COMA NUMERO COMA ID PAREN_DER {:
-                    // Implementar según tipos de ítems
-                    System.out.println("Ítem " + $7 + " en (" + $3 + "," + $5 + ")");
-              :};
+wall_command ::= WALL NUMBER NUMBER {: 
+                    togglePared((Integer)$2, (Integer)$3); 
+                :};
+
+start_command ::= START NUMBER NUMBER {: 
+                    setCeldaInicio((Integer)$2, (Integer)$3); 
+                 :};
+
+end_command ::= END NUMBER NUMBER {: 
+                    setCeldaFin((Integer)$2, (Integer)$3); 
+               :};
+
+door_command ::= DOOR NUMBER NUMBER {: 
+                    agregarPuerta((Integer)$2, (Integer)$3); 
+                :};
+
+monster_command ::= MONSTER NUMBER NUMBER {: 
+                    agregarMonstruo((Integer)$2, (Integer)$3); 
+                   :};
