@@ -8,6 +8,7 @@ public class Celda {
     private boolean inicio;
     private boolean fin;
     private Entidad entidad; // Puede ser una puerta, monstruo, etc.
+    private boolean enCamino;
 
     public Celda(int x, int y) {
         this.x = x;
@@ -29,9 +30,12 @@ public class Celda {
     public void setFin(boolean fin) { this.fin = fin; }
     public Entidad getEntidad() { return entidad; }
     public void setEntidad(Entidad entidad) { this.entidad = entidad; }
+    public boolean estaEnCamino() { return enCamino; }
+    public void setEnCamino(boolean enCamino) { this.enCamino = enCamino; }
 
     @Override
     public String toString() {
+        if (enCamino) return "o";
         if (inicio) return "S";
         if (fin) return "E";
         if (pared) return "#";

@@ -1,0 +1,82 @@
+// Parser.cup
+package analizador;
+
+import modelo.*;
+import java_cup.runtime.*;
+
+parser code {:
+    // Código de inicialización del parser
+    private Laberinto laberintoActual;
+    
+    public void setLaberinto(Laberinto lab) {
+        this.laberintoActual = lab;
+    }
+:}
+
+action code {:
+    // Métodos auxiliares para acciones
+    private void crearLaberinto(int ancho, int alto) {
+        laberintoActual = new Laberinto(ancho, alto);
+    }
+    
+    private void agregarPared(int x, int y, int longitud, String direccion) {
+        // Implementar lógica para añadir pared
+        boolean esHorizontal = direccion.equals("H");
+        for (int i = 0; i < longitud; i++) {
+            int xActual = esHorizontal ? x + i : x;
+            int yActual = esHorizontal ? y : y + i;
+            if (xActual < laberintoActual.getAncho() && yActual < laberintoActual.getAlto()) {
+                laberintoActual.getCelda(xActual, yActual).setPared(true);
+            }
+        }
+    }
+:}
+
+/* Terminales (tokens) */
+terminal String ROOM, WALL, START, END, DOOR, MONSTER, ITEM, H, V;
+terminal Integer NUMERO;
+terminal String COMA, PAREN_IZQ, PAREN_DER;
+
+/* No terminales */
+non terminal Laberinto laberinto;
+non terminal Instrucciones lista_instrucciones;
+non terminal Instruccion instruccion;
+
+/* Precedencias */
+precedence left PAREN_IZQ, PAREN_DER;
+
+/* Reglas gramaticales */
+start with lista_instrucciones;
+
+lista_instrucciones ::= instruccion lista_instrucciones 
+                      | /* vacío */ ;
+
+instruccion ::= ROOM PAREN_IZQ NUMERO COMA NUMERO PAREN_DER {:
+                    crearLaberinto($3, $5);
+                    System.out.println("Nuevo laberinto " + $3 + "x" + $5);
+              :}
+              | WALL PAREN_IZQ NUMERO COMA NUMERO COMA NUMERO COMA DIRECCION PAREN_DER {:
+                    agregarPared($3, $5, $7, $9);
+                    System.out.println("Pared desde (" + $3 + "," + $5 + ") " + 
+                                      "longitud " + $7 + " dirección " + $9);
+              :}
+              | START PAREN_IZQ NUMERO COMA NUMERO PAREN_DER {:
+                    laberintoActual.setCeldaInicio($3, $5);
+                    System.out.println("Punto de inicio en (" + $3 + "," + $5 + ")");
+              :}
+              | END PAREN_IZQ NUMERO COMA NUMERO PAREN_DER {:
+                    laberintoActual.setCeldaFin($3, $5);
+                    System.out.println("Punto final en (" + $3 + "," + $5 + ")");
+              :}
+              | DOOR PAREN_IZQ NUMERO COMA NUMERO PAREN_DER {:
+                    laberintoActual.getCelda($3, $5).setEntidad(new Entidad.Puerta($3, $5));
+                    System.out.println("Puerta añadida en (" + $3 + "," + $5 + ")");
+              :}
+              | MONSTER PAREN_IZQ NUMERO COMA NUMERO PAREN_DER {:
+                    laberintoActual.getCelda($3, $5).setEntidad(new Entidad.Monstruo($3, $5));
+                    System.out.println("Monstruo añadido en (" + $3 + "," + $5 + ")");
+              :}
+              | ITEM PAREN_IZQ NUMERO COMA NUMERO COMA ID PAREN_DER {:
+                    // Implementar según tipos de ítems
+                    System.out.println("Ítem " + $7 + " en (" + $3 + "," + $5 + ")");
+              :};

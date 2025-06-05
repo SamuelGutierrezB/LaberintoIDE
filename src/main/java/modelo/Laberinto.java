@@ -1,6 +1,7 @@
 package modelo;
 
 import java.io.*;
+import java.util.*;
 import java.util.Scanner;
 
 public class Laberinto {
@@ -122,5 +123,93 @@ public class Laberinto {
             System.err.println("Error al cargar el laberinto: " + e.getMessage());
             return null;
         }
+    }
+     public void limpiarCaminos() {
+        for (int y = 0; y < alto; y++) {
+            for (int x = 0; x < ancho; x++) {
+                celdas[x][y].setEnCamino(false);
+            }
+        }
+    }
+     public List<Celda> encontrarCaminoDijkstra() {
+        Celda inicio = null;
+        Celda fin = null;
+
+        // Encontrar celdas de inicio y fin
+        for (int y = 0; y < alto; y++) {
+            for (int x = 0; x < ancho; x++) {
+                Celda celda = getCelda(x, y);
+                if (celda.esInicio()) inicio = celda;
+                if (celda.esFin()) fin = celda;
+            }
+        }
+
+        if (inicio == null || fin == null) {
+            return Collections.emptyList();
+        }
+
+        // Inicialización
+        PriorityQueue<NodoDijkstra> cola = new PriorityQueue<>();
+        Map<Celda, NodoDijkstra> nodos = new HashMap<>();
+
+        for (int y = 0; y < alto; y++) {
+            for (int x = 0; x < ancho; x++) {
+                Celda celda = getCelda(x, y);
+                NodoDijkstra nodo = new NodoDijkstra(celda, celda == inicio ? 0 : Integer.MAX_VALUE);
+                nodos.put(celda, nodo);
+                cola.add(nodo);
+            }
+        }
+
+        // Algoritmo de Dijkstra
+        while (!cola.isEmpty()) {
+            NodoDijkstra actual = cola.poll();
+
+            if (actual.celda == fin) {
+                break; // Hemos llegado al destino
+            }
+
+            for (Celda vecino : obtenerVecinos(actual.celda)) {
+                if (vecino.esPared()) continue;
+
+                NodoDijkstra nodoVecino = nodos.get(vecino);
+                int nuevaDistancia = actual.distancia + 1;
+
+                if (nuevaDistancia < nodoVecino.distancia) {
+                    cola.remove(nodoVecino);
+                    nodoVecino.distancia = nuevaDistancia;
+                    nodoVecino.anterior = actual;
+                    cola.add(nodoVecino);
+                }
+            }
+        }
+
+        // Reconstruir el camino
+        return reconstruirCamino(nodos.get(fin));
+    }
+
+    private List<Celda> obtenerVecinos(Celda celda) {
+        List<Celda> vecinos = new ArrayList<>();
+        int x = celda.getX();
+        int y = celda.getY();
+
+        if (x > 0) vecinos.add(getCelda(x - 1, y));
+        if (x < ancho - 1) vecinos.add(getCelda(x + 1, y));
+        if (y > 0) vecinos.add(getCelda(x, y - 1));
+        if (y < alto - 1) vecinos.add(getCelda(x, y + 1));
+
+        return vecinos;
+    }
+
+    private List<Celda> reconstruirCamino(NodoDijkstra nodoFin) {
+        LinkedList<Celda> camino = new LinkedList<>();
+        NodoDijkstra actual = nodoFin;
+
+        while (actual != null && actual.anterior != null) {
+            camino.addFirst(actual.celda);
+            actual = actual.anterior;
+        }
+
+        return camino;
     }
 }
