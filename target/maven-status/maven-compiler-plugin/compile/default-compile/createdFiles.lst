@@ -1,9 +1,9 @@
 analizador\Tokens.class
+analizador\LaberintoChangeListener.class
 analizador\CommandParser.class
 modelo\Celda.class
 modelo\Entidad$Monstruo.class
 gui\LaberintoGUI.class
-gui\LaberintoGUI$2.class
 modelo\Entidad.class
 gui\LaberintoJFrame$1.class
 modelo\Entidad$Puerta.class

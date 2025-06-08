@@ -1,5 +1,6 @@
 package gui;
 
+import analizador.LaberintoChangeListener;
 import analizador.CommandParser;
 import modelo.Laberinto;
 import modelo.Celda;
@@ -14,7 +15,7 @@ import java.io.File;
  * Controlador que maneja la lógica del Laberinto IDE
  * Se encarga de la lógica de negocio y comunicación entre modelo y vista
  */
-public class LaberintoGUI {
+public class LaberintoGUI implements LaberintoChangeListener {
     
     private Laberinto laberinto;
     private CommandParser commandParser;
@@ -22,18 +23,41 @@ public class LaberintoGUI {
     private int celdaSize = 40;
     private MouseListener mouseListener;
     
+    @Override
+    public void onLaberintoChanged(Laberinto nuevoLaberinto) {
+        this.laberinto = nuevoLaberinto;
+        actualizarVistaLaberinto();
+    }
+
+    private void actualizarVistaLaberinto() {
+        if (laberinto != null) {
+            // Calcular tamaño óptimo de celda basado en el tamaño del contenedor
+            Dimension panelSize = vista.getPanelLaberintoSize();
+            int maxCeldaSize = Math.min(
+                panelSize.width / laberinto.getAncho(),
+                panelSize.height / laberinto.getAlto()
+            );
+            this.celdaSize = Math.max(20, Math.min(maxCeldaSize, 50)); // Entre 20 y 50 píxeles
+            
+            vista.actualizarTamanoPanelLaberinto(laberinto.getAncho(), laberinto.getAlto(), celdaSize);
+            vista.repintarLaberinto();
+        }
+    }
+
     public LaberintoGUI(LaberintoJFrame vista) {
         this.vista = vista;
-        
-        // Inicializar modelo y parser
-        laberinto = new Laberinto(10, 10);
-        commandParser = new CommandParser(laberinto);
-        
-        // Configurar el tamaño inicial del panel
-        vista.actualizarTamanoPanelLaberinto(laberinto.getAncho(), laberinto.getAlto(), celdaSize);
-        
-        // Crear el mouse listener
+        this.commandParser = new CommandParser();
+        //this.laberinto = new Laberinto(10, 10); // Laberinto por defecto
         setupMouseListener();
+    }
+    
+    public Laberinto getLaberinto() {
+        return laberinto;
+    }
+    
+    public void crearLaberintoPorDefecto(int ancho, int alto) {
+        this.laberinto = new Laberinto(ancho, alto);
+        actualizarVistaLaberinto();
     }
     
     private void setupMouseListener() {
@@ -50,13 +74,22 @@ public class LaberintoGUI {
     }
     
     public void dibujarLaberinto(Graphics g) {
+        if (laberinto == null) {
+            // Dibujar estado vacío
+            g.setColor(Color.WHITE);
+            g.fillRect(0, 0, vista.getPanelLaberinto().getWidth(), vista.getPanelLaberinto().getHeight());
+            g.setColor(Color.BLACK);
+            g.drawString("Crea un laberinto con 'ROOM ancho alto'", 20, 20);
+            return;
+        }
+        
         for (int y = 0; y < laberinto.getAlto(); y++) {
             for (int x = 0; x < laberinto.getAncho(); x++) {
                 Celda celda = laberinto.getCelda(x, y);
                 
                 // Establecer color de fondo
                 if (celda.estaEnCamino()) {
-                    g.setColor(new Color(255, 165, 0)); // Naranja para el camino
+                    g.setColor(new Color(255, 165, 0)); // Naranja para camino
                 } else {
                     g.setColor(obtenerColorCelda(celda));
                 }
@@ -67,11 +100,11 @@ public class LaberintoGUI {
                 if (celda.getEntidad() != null) {
                     g.setColor(Color.BLUE);
                     g.drawString(celda.getEntidad().getSimbolo(), 
-                                x * celdaSize + celdaSize/2, 
-                                y * celdaSize + celdaSize/2);
+                               x * celdaSize + celdaSize/2 - 4, 
+                               y * celdaSize + celdaSize/2 + 4);
                 }
                 
-                // Dibujar borde de la celda
+                // Dibujar borde
                 g.setColor(Color.GRAY);
                 g.drawRect(x * celdaSize, y * celdaSize, celdaSize, celdaSize);
             }
@@ -86,6 +119,8 @@ public class LaberintoGUI {
     }
     
     private void manejarClickMouse(MouseEvent e) {
+        if (laberinto == null) return;
+        
         int x = e.getX() / celdaSize;
         int y = e.getY() / celdaSize;
         
@@ -101,88 +136,63 @@ public class LaberintoGUI {
     }
     
     public void procesarComando(String command) {
-        command = command.trim();
-        if (!command.isEmpty()) {
-            vista.mostrarEnConsola("> " + command);
-            
-            try {
-                commandParser.executeCommand(command);
-                vista.repintarLaberinto();
-                vista.limpiarErrores();
-            } catch (Exception ex) {
-                vista.mostrarError(ex.getMessage());
-            }
-            
-            vista.limpiarInputComando();
+    try {
+        // Mostrar el comando en la consola
+        vista.mostrarEnConsola("> " + command);
+        
+        commandParser.executeCommand(command);
+        if (command.toUpperCase().startsWith("ROOM")) {
+            this.laberinto = commandParser.getLaberinto();
+            actualizarVistaLaberinto();
         }
+        vista.repintarLaberinto();
+    } catch (Exception ex) {
+        vista.mostrarError(ex.getMessage());
     }
+}
     
     public void guardarLaberinto() {
-        JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setDialogTitle("Guardar laberinto");
-        fileChooser.setCurrentDirectory(new File(System.getProperty("user.dir")));
+    JFileChooser fileChooser = new JFileChooser();
+    fileChooser.setDialogTitle("Guardar laberinto");
+    fileChooser.setCurrentDirectory(new File(System.getProperty("user.dir")));
+    
+    // Cambiar vista.getFrame() por vista directamente
+    if (fileChooser.showSaveDialog(vista) == JFileChooser.APPROVE_OPTION) {
+        File file = fileChooser.getSelectedFile();
         
-        if (fileChooser.showSaveDialog(vista.getFrame()) == JFileChooser.APPROVE_OPTION) {
-            File file = fileChooser.getSelectedFile();
-            
-            // Agregar extensión si no la tiene
-            if (!file.getName().toLowerCase().endsWith(".lab")) {
-                file = new File(file.getAbsolutePath() + ".lab");
-            }
-            
-            try {
-                laberinto.guardar(file.getAbsolutePath());
-                vista.mostrarExito("Laberinto guardado correctamente en: " + file.getName());
-            } catch (Exception ex) {
-                vista.mostrarError("Error al guardar: " + ex.getMessage());
-            }
+        // Agregar extensión si no la tiene
+        if (!file.getName().toLowerCase().endsWith(".lab")) {
+            file = new File(file.getAbsolutePath() + ".lab");
+        }
+        
+        try {
+            laberinto.guardar(file.getAbsolutePath());
+            vista.mostrarExito("Laberinto guardado correctamente en: " + file.getName());
+        } catch (Exception ex) {
+            vista.mostrarError("Error al guardar: " + ex.getMessage());
         }
     }
+}
     
     public void cargarLaberinto() {
         JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setDialogTitle("Cargar laberinto");
-        fileChooser.setCurrentDirectory(new File(System.getProperty("user.dir")));
-        
-        // Filtro para archivos de laberinto
-        fileChooser.setFileFilter(new javax.swing.filechooser.FileFilter() {
-            @Override
-            public boolean accept(File f) {
-                return f.isDirectory() || f.getName().toLowerCase().endsWith(".lab");
-            }
-            
-            @Override
-            public String getDescription() {
-                return "Archivos de Laberinto (*.lab)";
-            }
-        });
-        
-        if (fileChooser.showOpenDialog(vista.getFrame()) == JFileChooser.APPROVE_OPTION) {
-            File file = fileChooser.getSelectedFile();
-            
+        if (fileChooser.showOpenDialog(vista) == JFileChooser.APPROVE_OPTION) {
+            File archivo = fileChooser.getSelectedFile();
             try {
-                Laberinto nuevoLaberinto = Laberinto.cargar(file.getAbsolutePath());
+                Laberinto nuevoLaberinto = Laberinto.cargar(archivo.getAbsolutePath());
                 this.laberinto = nuevoLaberinto;
-                
-                // Actualizar el parser con el nuevo laberinto
-                this.commandParser = new CommandParser(laberinto);
-                
-                // Actualizar el tamaño del panel
-                vista.actualizarTamanoPanelLaberinto(laberinto.getAncho(), laberinto.getAlto(), celdaSize);
-                
-                // Repintar todo
-                vista.repintarVentana();
-                vista.mostrarExito("Laberinto cargado correctamente desde: " + file.getName());
-                
+                this.commandParser.setLaberinto(nuevoLaberinto);
+                actualizarVistaLaberinto();
             } catch (Exception ex) {
                 vista.mostrarError("Error al cargar: " + ex.getMessage());
             }
         }
     }
     
-    // Getters para acceso controlado desde la vista
-    public Laberinto getLaberinto() {
-        return laberinto;
+    public void actualizarLaberinto(Laberinto nuevoLaberinto) {
+        this.laberinto = nuevoLaberinto;
+        commandParser.setLaberinto(nuevoLaberinto);
+        actualizarVistaLaberinto();
     }
     
     public int getCeldaSize() {

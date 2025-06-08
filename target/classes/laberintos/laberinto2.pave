@@ -1,8 +1,0 @@
-DIM 10 10          # Dimensiones (ancho, alto)
-START 1 1          # Celda de inicio
-END 8 8            # Celda final
-WALL 3 3           # Muro en (3,3)
-WALL 3 4           # Muro en (3,4)
-DOOR 5 5           # Puerta en (5,5)
-MONSTER 7 7        # Monstruo en (7,7)
-ITEM 2 2 KEY       # Objeto (tipo "KEY") en (2,2)

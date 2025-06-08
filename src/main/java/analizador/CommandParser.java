@@ -6,12 +6,9 @@ import modelo.Celda;
 import java.util.List;
 import java.util.StringTokenizer;
 
-/**
- * Clase que actúa como interfaz entre el parser y el modelo
- * Mantiene la funcionalidad de executeCommand para la GUI
- */
 public class CommandParser {
     private Laberinto laberinto;
+    private LaberintoChangeListener listener;
 
     public CommandParser() {
         this.laberinto = null;
@@ -21,9 +18,14 @@ public class CommandParser {
         this.laberinto = laberinto;
     }
 
+    public void setLaberintoChangeListener(LaberintoChangeListener listener) {
+        this.listener = listener;
+    }
+
+
     /**
-     * Ejecuta un comando de texto parseando la cadena
-     * @param commandText el comando como texto (ej: "ROOM 10 10")
+     * Ejecuta un comando de texto
+     * @param commandText el comando (ej: "ROOM 10 10")
      * @throws IllegalArgumentException si el comando es inválido
      */
     public void executeCommand(String commandText) {
@@ -32,49 +34,44 @@ public class CommandParser {
         }
 
         StringTokenizer tokenizer = new StringTokenizer(commandText.trim().toUpperCase());
-        if (!tokenizer.hasMoreTokens()) {
-            throw new IllegalArgumentException("Comando vacío");
-        }
-
         String command = tokenizer.nextToken();
-        
+
         try {
             switch (command) {
                 case "ROOM":
                     if (tokenizer.countTokens() != 2) {
-                        throw new IllegalArgumentException("ROOM requiere 2 parámetros: ancho alto");
+                        throw new IllegalArgumentException("ROOM requiere exactamente 2 parámetros: ancho alto");
                     }
-                    int ancho = Integer.parseInt(tokenizer.nextToken());
-                    int alto = Integer.parseInt(tokenizer.nextToken());
-                    crearLaberinto(ancho, alto);
+                    
+                    try {
+                        int ancho = Integer.parseInt(tokenizer.nextToken());
+                        int alto = Integer.parseInt(tokenizer.nextToken());
+                        System.out.println("Creando laberinto " + ancho + "x" + alto); // Debug
+                        crearLaberinto(ancho, alto);
+                    } catch (NumberFormatException e) {
+                        throw new IllegalArgumentException("Los parámetros de ROOM deben ser números enteros");
+                    }
                     break;
                     
-                case "WALL":
-                    if (tokenizer.countTokens() != 2) {
-                        throw new IllegalArgumentException("WALL requiere 2 parámetros: x y");
-                    }
-                    int wallX = Integer.parseInt(tokenizer.nextToken());
-                    int wallY = Integer.parseInt(tokenizer.nextToken());
-                    togglePared(wallX, wallY);
+                    
+                 case "WALL":
+                    validarXY(tokenizer, "WALL");
+                    togglePared(Integer.parseInt(tokenizer.nextToken()), 
+                              Integer.parseInt(tokenizer.nextToken()));
                     break;
                     
                 case "START":
-                    if (tokenizer.countTokens() != 2) {
-                        throw new IllegalArgumentException("START requiere 2 parámetros: x y");
-                    }
-                    int startX = Integer.parseInt(tokenizer.nextToken());
-                    int startY = Integer.parseInt(tokenizer.nextToken());
-                    setCeldaInicio(startX, startY);
+                    validarXY(tokenizer, "START");
+                    setCeldaInicio(Integer.parseInt(tokenizer.nextToken()), 
+                                 Integer.parseInt(tokenizer.nextToken()));
                     break;
                     
                 case "END":
-                    if (tokenizer.countTokens() != 2) {
-                        throw new IllegalArgumentException("END requiere 2 parámetros: x y");
-                    }
-                    int endX = Integer.parseInt(tokenizer.nextToken());
-                    int endY = Integer.parseInt(tokenizer.nextToken());
-                    setCeldaFin(endX, endY);
+                    validarXY(tokenizer, "END");
+                    setCeldaFin(Integer.parseInt(tokenizer.nextToken()), 
+                              Integer.parseInt(tokenizer.nextToken()));
                     break;
+                    
                     
                 case "DOOR":
                     if (tokenizer.countTokens() != 2) {
@@ -113,24 +110,50 @@ public class CommandParser {
                     throw new IllegalArgumentException("Comando no reconocido: " + command);
             }
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Parámetros numéricos inválidos en: " + commandText);
+            throw new IllegalArgumentException("Parámetros deben ser números");
         }
     }
 
-    // Métodos privados para ejecutar comandos (mantenidos para executeCommand)
-    private void crearLaberinto(int ancho, int alto) {
-        if (ancho <= 0 || alto <= 0) {
-            throw new IllegalArgumentException("Las dimensiones deben ser positivas");
+
+    private void validarXY(StringTokenizer tokenizer, String comando) {
+        if (tokenizer.countTokens() != 2) {
+            throw new IllegalArgumentException(comando + " requiere 2 coordenadas (ej: " + comando + " 5 5)");
         }
-        if (ancho > Tokens.MAX_ROOM_SIZE || alto > Tokens.MAX_ROOM_SIZE) {
-            throw new IllegalArgumentException("Dimensiones demasiado grandes (máximo " + Tokens.MAX_ROOM_SIZE + ")");
-        }
-        laberinto = new Laberinto(ancho, alto);
     }
+
+private void crearLaberinto(int ancho, int alto) {
+    // Limpiar laberinto existente
+    if (this.laberinto != null) {
+        this.laberinto = null;
+    }
+    
+    // Crear nuevo laberinto
+    this.laberinto = new Laberinto(ancho, alto);
+    
+    if (listener != null) {
+        listener.onLaberintoChanged(this.laberinto);
+    }
+}
+private void validarLaberintoExiste() {
+    if (laberinto == null) {
+        throw new IllegalStateException("Primero debes crear un laberinto con ROOM");
+    }
+}
 
     private void togglePared(int x, int y) {
+        validarLaberintoExiste();
         validarCoordenadas(x, y);
         laberinto.togglePared(x, y);
+    }
+
+private void validarCoordenadas(int x, int y) {
+    if (laberinto == null) {
+        throw new IllegalStateException("Primero debes crear un laberinto (comando: ROOM ancho alto)");
+    }
+        if (x < 0 || x >= laberinto.getAncho() || y < 0 || y >= laberinto.getAlto()) {
+            throw new IllegalArgumentException("Coordenadas fuera de rango (0-" + 
+                (laberinto.getAncho()-1) + ", 0-" + (laberinto.getAlto()-1) + ")");
+        }
     }
 
     private void setCeldaInicio(int x, int y) {
@@ -174,19 +197,6 @@ public class CommandParser {
         laberinto.limpiarCaminos();
     }
 
-    private void validarCoordenadas(int x, int y) {
-        if (laberinto == null) {
-            throw new IllegalArgumentException("Laberinto no inicializado. Use ROOM primero.");
-        }
-        if (x < 0 || x >= laberinto.getAncho() || y < 0 || y >= laberinto.getAlto()) {
-            throw new IllegalArgumentException("Coordenadas fuera de rango (0-" + (laberinto.getAncho()-1) + ", 0-" + (laberinto.getAlto()-1) + ")");
-        }
-    }
-
-    /**
-     * Obtiene el laberinto actual
-     * @return el laberinto o null si no se ha inicializado
-     */
     public Laberinto getLaberinto() {
         return laberinto;
     }
