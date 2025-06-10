@@ -6,42 +6,34 @@ package analizador;
  */
 public interface Tokens {
     // Palabras reservadas (comandos)
-    int ROOM = 1;
-    int WALL = 2;
-    int START = 3;
-    int END = 4;
-    int DOOR = 5;
-    int MONSTER = 6;
-    int GO = 7;
-    int CLEAR_PATH = 8;
+    String ROOM = "ROOM";
+    String WALL = "WALL";
+    String START = "START";
+    String END = "END";
+    String DOOR = "DOOR";
+    String MONSTER = "MONSTER";
+    String GO = "GO";
+    String CLEAR_PATH = "CLEAR_PATH";
+    String CLEAR = "CLEAR"; // Alias para CLEAR_PATH
 
     // Token para números enteros (coordenadas)
-    int NUMBER = 9;
+    String NUMBER = "NUMBER";
 
     // Tokens especiales
-    int EOF = -1;
-    int ERROR = -2;
+    String EOF = "EOF";
+    String ERROR = "ERROR";
     
     // Mensajes de error predefinidos
-    String[] ERROR_MESSAGES = {
-        "Token no reconocido",
-        "Número esperado",
-        "Comando no válido",
-        "Fin de archivo inesperado",
-        "Error de sintaxis"
-    };
-    
-    // Comandos como cadenas para validación
-    String[] COMMAND_STRINGS = {
-        "ROOM",
-        "WALL", 
-        "START",
-        "END",
-        "DOOR",
-        "MONSTER",
-        "GO",
-        "CLEAR_PATH"
-    };
+    String ERROR_UNRECOGNIZED = "Token no reconocido";
+    String ERROR_NUMBER_EXPECTED = "Número esperado";
+    String ERROR_INVALID_COMMAND = "Comando no válido";
+    String ERROR_UNEXPECTED_EOF = "Fin de archivo inesperado";
+    String ERROR_SYNTAX = "Error de sintaxis";
+    String ERROR_NO_PARAMS_NEEDED = " no requiere parámetros";
+    String ERROR_REQUIRES_2_PARAMS = " requiere 2 parámetros: x y";
+    String ERROR_ROOM_REQUIRES_2_PARAMS = "ROOM requiere exactamente 2 parámetros: ancho alto";
+    String ERROR_INVALID_NUMBER = "Los parámetros deben ser números enteros";
+    String ERROR_CLEAR_COMPLETE = "CLEAR: Laberinto reiniciado a estado inicial";
     
     // Límites de coordenadas (pueden ser modificados según necesidades)
     int MIN_COORDINATE = 0;
@@ -50,45 +42,26 @@ public interface Tokens {
     int MAX_ROOM_SIZE = 50;
     
     /**
-     * Método para obtener el nombre del token dado su código
-     * @param tokenCode código del token
-     * @return nombre del token como String
-     */
-    static String getTokenName(int tokenCode) {
-        switch(tokenCode) {
-            case ROOM: return "ROOM";
-            case WALL: return "WALL";
-            case START: return "START";
-            case END: return "END";
-            case DOOR: return "DOOR";
-            case MONSTER: return "MONSTER";
-            case GO: return "GO";
-            case CLEAR_PATH: return "CLEAR_PATH";
-            case NUMBER: return "NUMBER";
-            case EOF: return "EOF";
-            case ERROR: return "ERROR";
-            default: return "UNKNOWN_TOKEN";
-        }
-    }
-    
-    /**
      * Método para validar si una cadena es un comando válido
      * @param command cadena a validar
-     * @return código del token si es válido, ERROR si no lo es
+     * @return true si es un comando válido
      */
-    static int getTokenCode(String command) {
-        if (command == null) return ERROR;
+    static boolean isValidCommand(String command) {
+        if (command == null) return false;
         
         switch(command.toUpperCase()) {
-            case "ROOM": return ROOM;
-            case "WALL": return WALL;
-            case "START": return START;
-            case "END": return END;
-            case "DOOR": return DOOR;
-            case "MONSTER": return MONSTER;
-            case "GO": return GO;
-            case "CLEAR_PATH": return CLEAR_PATH;
-            default: return ERROR;
+            case ROOM:
+            case WALL:
+            case START:
+            case END:
+            case DOOR:
+            case MONSTER:
+            case GO:
+            case CLEAR_PATH:
+            case CLEAR:
+                return true;
+            default:
+                return false;
         }
     }
     

@@ -55,7 +55,7 @@ public class LaberintoJFrame extends javax.swing.JFrame {
         }
         
         // Ajustar el tamaño de la ventana
-        this.setSize(800, 600);
+        this.setSize(800, 700);
         this.setResizable(true);
         this.setLocationRelativeTo(null);
     }

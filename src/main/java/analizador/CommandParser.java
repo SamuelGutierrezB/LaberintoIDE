@@ -22,7 +22,6 @@ public class CommandParser {
         this.listener = listener;
     }
 
-
     /**
      * Ejecuta un comando de texto
      * @param commandText el comando (ej: "ROOM 10 10")
@@ -30,126 +29,105 @@ public class CommandParser {
      */
     public void executeCommand(String commandText) {
         if (commandText == null || commandText.trim().isEmpty()) {
-            throw new IllegalArgumentException("Comando vacío");
+            throw new IllegalArgumentException(Tokens.ERROR_SYNTAX);
         }
 
         StringTokenizer tokenizer = new StringTokenizer(commandText.trim().toUpperCase());
         String command = tokenizer.nextToken();
 
+        if (!Tokens.isValidCommand(command)) {
+            throw new IllegalArgumentException(Tokens.ERROR_INVALID_COMMAND + ": " + command);
+        }
+
         try {
             switch (command) {
-                case "ROOM":
-                    if (tokenizer.countTokens() != 2) {
-                        throw new IllegalArgumentException("ROOM requiere exactamente 2 parámetros: ancho alto");
+                case Tokens.ROOM:
+                    validarParametros(tokenizer, 2, Tokens.ERROR_ROOM_REQUIRES_2_PARAMS);
+                    int ancho = Integer.parseInt(tokenizer.nextToken());
+                    int alto = Integer.parseInt(tokenizer.nextToken());
+                    if (!Tokens.isValidRoomSize(ancho) || !Tokens.isValidRoomSize(alto)) {
+                        throw new IllegalArgumentException("Tamaño de habitación inválido. Rango: " + 
+                            Tokens.MIN_ROOM_SIZE + "-" + Tokens.MAX_ROOM_SIZE);
                     }
+                    crearLaberinto(ancho, alto);
+                    break;
                     
-                    try {
-                        int ancho = Integer.parseInt(tokenizer.nextToken());
-                        int alto = Integer.parseInt(tokenizer.nextToken());
-                        System.out.println("Creando laberinto " + ancho + "x" + alto); // Debug
-                        crearLaberinto(ancho, alto);
-                    } catch (NumberFormatException e) {
-                        throw new IllegalArgumentException("Los parámetros de ROOM deben ser números enteros");
+                case Tokens.WALL:
+                case Tokens.START:
+                case Tokens.END:
+                case Tokens.DOOR:
+                case Tokens.MONSTER:
+                    validarParametros(tokenizer, 2, command + Tokens.ERROR_REQUIRES_2_PARAMS);
+                    int x = Integer.parseInt(tokenizer.nextToken());
+                    int y = Integer.parseInt(tokenizer.nextToken());
+                    validarCoordenadas(x, y);
+                    
+                    switch (command) {
+                        case Tokens.WALL:
+                            togglePared(x, y);
+                            break;
+                        case Tokens.START:
+                            setCeldaInicio(x, y);
+                            break;
+                        case Tokens.END:
+                            setCeldaFin(x, y);
+                            break;
+                        case Tokens.DOOR:
+                            agregarPuerta(x, y);
+                            break;
+                        case Tokens.MONSTER:
+                            agregarMonstruo(x, y);
+                            break;
                     }
                     break;
                     
-                    
-                 case "WALL":
-                    validarXY(tokenizer, "WALL");
-                    togglePared(Integer.parseInt(tokenizer.nextToken()), 
-                              Integer.parseInt(tokenizer.nextToken()));
-                    break;
-                    
-                case "START":
-                    validarXY(tokenizer, "START");
-                    setCeldaInicio(Integer.parseInt(tokenizer.nextToken()), 
-                                 Integer.parseInt(tokenizer.nextToken()));
-                    break;
-                    
-                case "END":
-                    validarXY(tokenizer, "END");
-                    setCeldaFin(Integer.parseInt(tokenizer.nextToken()), 
-                              Integer.parseInt(tokenizer.nextToken()));
-                    break;
-                    
-                    
-                case "DOOR":
-                    if (tokenizer.countTokens() != 2) {
-                        throw new IllegalArgumentException("DOOR requiere 2 parámetros: x y");
+                case Tokens.GO:
+                case Tokens.CLEAR_PATH:
+                case Tokens.CLEAR:
+                    validarParametros(tokenizer, 0, command + Tokens.ERROR_NO_PARAMS_NEEDED);
+                    if (command.equals(Tokens.GO)) {
+                        encontrarCamino();
+                    } else {
+                        limpiarCaminos();
                     }
-                    int doorX = Integer.parseInt(tokenizer.nextToken());
-                    int doorY = Integer.parseInt(tokenizer.nextToken());
-                    agregarPuerta(doorX, doorY);
                     break;
-                    
-                case "MONSTER":
-                    if (tokenizer.countTokens() != 2) {
-                        throw new IllegalArgumentException("MONSTER requiere 2 parámetros: x y");
-                    }
-                    int monsterX = Integer.parseInt(tokenizer.nextToken());
-                    int monsterY = Integer.parseInt(tokenizer.nextToken());
-                    agregarMonstruo(monsterX, monsterY);
-                    break;
-                    
-                case "GO":
-                    if (tokenizer.hasMoreTokens()) {
-                        throw new IllegalArgumentException("GO no requiere parámetros");
-                    }
-                    encontrarCamino();
-                    break;
-                    
-                case "CLEAR_PATH":
-                case "CLEAR":
-                    if (tokenizer.hasMoreTokens()) {
-                        throw new IllegalArgumentException("CLEAR_PATH no requiere parámetros");
-                    }
-                    limpiarCaminos();
-                    break;
-                    
-                default:
-                    throw new IllegalArgumentException("Comando no reconocido: " + command);
             }
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Parámetros deben ser números");
+            throw new IllegalArgumentException(Tokens.ERROR_INVALID_NUMBER);
         }
     }
 
-
-    private void validarXY(StringTokenizer tokenizer, String comando) {
-        if (tokenizer.countTokens() != 2) {
-            throw new IllegalArgumentException(comando + " requiere 2 coordenadas (ej: " + comando + " 5 5)");
+    private void validarParametros(StringTokenizer tokenizer, int expected, String errorMessage) {
+        if (tokenizer.countTokens() != expected) {
+            throw new IllegalArgumentException(errorMessage);
         }
     }
 
-private void crearLaberinto(int ancho, int alto) {
-    // Limpiar laberinto existente
-    if (this.laberinto != null) {
-        this.laberinto = null;
+    private void crearLaberinto(int ancho, int alto) {
+        if (this.laberinto != null) {
+            this.laberinto = null;
+        }
+        
+        this.laberinto = new Laberinto(ancho, alto);
+        
+        if (listener != null) {
+            listener.onLaberintoChanged(this.laberinto);
+        }
     }
-    
-    // Crear nuevo laberinto
-    this.laberinto = new Laberinto(ancho, alto);
-    
-    if (listener != null) {
-        listener.onLaberintoChanged(this.laberinto);
+
+    private void validarLaberintoExiste() {
+        if (laberinto == null) {
+            throw new IllegalStateException("Primero debes crear un laberinto con " + Tokens.ROOM);
+        }
     }
-}
-private void validarLaberintoExiste() {
-    if (laberinto == null) {
-        throw new IllegalStateException("Primero debes crear un laberinto con ROOM");
-    }
-}
 
     private void togglePared(int x, int y) {
         validarLaberintoExiste();
-        validarCoordenadas(x, y);
         laberinto.togglePared(x, y);
     }
 
-private void validarCoordenadas(int x, int y) {
-    if (laberinto == null) {
-        throw new IllegalStateException("Primero debes crear un laberinto (comando: ROOM ancho alto)");
-    }
+    private void validarCoordenadas(int x, int y) {
+        validarLaberintoExiste();
         if (x < 0 || x >= laberinto.getAncho() || y < 0 || y >= laberinto.getAlto()) {
             throw new IllegalArgumentException("Coordenadas fuera de rango (0-" + 
                 (laberinto.getAncho()-1) + ", 0-" + (laberinto.getAlto()-1) + ")");
@@ -157,29 +135,22 @@ private void validarCoordenadas(int x, int y) {
     }
 
     private void setCeldaInicio(int x, int y) {
-        validarCoordenadas(x, y);
         laberinto.setCeldaInicio(x, y);
     }
 
     private void setCeldaFin(int x, int y) {
-        validarCoordenadas(x, y);
         laberinto.setCeldaFin(x, y);
     }
 
     private void agregarPuerta(int x, int y) {
-        validarCoordenadas(x, y);
         laberinto.getCelda(x, y).setEntidad(new Entidad.Puerta(x, y));
     }
 
     private void agregarMonstruo(int x, int y) {
-        validarCoordenadas(x, y);
         laberinto.getCelda(x, y).setEntidad(new Entidad.Monstruo(x, y));
     }
 
     private void encontrarCamino() {
-        if (laberinto == null) {
-            throw new IllegalArgumentException("Laberinto no inicializado. Use ROOM primero.");
-        }
         laberinto.limpiarCaminos();
         List<Celda> camino = laberinto.encontrarCaminoDijkstra();
         if (camino.isEmpty()) {
@@ -191,35 +162,41 @@ private void validarCoordenadas(int x, int y) {
     }
 
     private void limpiarCaminos() {
+        laberinto.limpiarCaminos();
         if (laberinto == null) {
             throw new IllegalArgumentException("Laberinto no inicializado. Use ROOM primero.");
         }
-        laberinto.limpiarCaminos();
+        
+        // Limpiar todas las celdas
+        for (int x = 0; x < laberinto.getAncho(); x++) {
+            for (int y = 0; y < laberinto.getAlto(); y++) {
+                Celda celda = laberinto.getCelda(x, y);
+                celda.setPared(false);
+                celda.setEntidad(null);
+                celda.setEnCamino(false);
+                celda.setInicio(false);
+                celda.setFin(false);
+            }
+        }
+        
+        // Notificar al listener si existe
+        if (listener != null) {
+            listener.onLaberintoChanged(this.laberinto);
+        }
     }
 
     public Laberinto getLaberinto() {
         return laberinto;
     }
 
-    /**
-     * Establece el laberinto
-     * @param laberinto el laberinto a establecer
-     */
     public void setLaberinto(Laberinto laberinto) {
         this.laberinto = laberinto;
     }
 
-    /**
-     * Verifica si el laberinto está inicializado
-     * @return true si el laberinto existe
-     */
     public boolean isLaberintoInicializado() {
         return laberinto != null;
     }
 
-    /**
-     * Reinicia el command parser (limpia el laberinto)
-     */
     public void reset() {
         this.laberinto = null;
     }
